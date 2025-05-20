@@ -143,6 +143,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="cyclelist.h" />
+    <ClInclude Include="dictionary.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="list.h" />
     <ClInclude Include="node.h" />
