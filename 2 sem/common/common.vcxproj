@@ -142,8 +142,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="cyclelist.h" />
+    <ClInclude Include="dictionary.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="list.h" />
+    <ClInclude Include="node.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="queue.h" />
+    <ClInclude Include="stack.h" />
+    <ClInclude Include="tree.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
