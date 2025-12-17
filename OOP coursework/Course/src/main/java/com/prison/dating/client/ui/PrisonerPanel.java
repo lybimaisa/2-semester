@@ -10,10 +10,6 @@ import main.java.com.prison.dating.server.entities.PrisonerEntity;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.List;
@@ -24,7 +20,6 @@ public class PrisonerPanel extends JFrame {
     private VisitService visitService;
     private DefaultTableModel contactsTableModel;
     private DefaultTableModel visitsTableModel;
-    private JTable contactsTable;
     private JTable visitsTable;
 
 
@@ -445,83 +440,6 @@ public class PrisonerPanel extends JFrame {
         worker.execute();
     }
 
-    // Вспомогательный класс для данных заключённого
-    class PrisonerData {
-        int id = 0;
-        String number = "";
-        String name = "";
-        String birthDate = "";
-
-        @Override
-        public String toString() {
-            return "PrisonerData{id=" + id + ", name='" + name + "', number='" + number + "'}";
-        }
-    }
-
-    // Парсинг одного объекта заключённого
-    private PrisonerData parsePrisonerObject(String json) {
-        PrisonerData prisoner = new PrisonerData();
-
-        try {
-            // Убираем фигурные скобки
-            String content = json.substring(1, json.length() - 1).trim();
-            if (content.isEmpty()) {
-                return prisoner;
-            }
-
-            // Разделяем поля
-            String[] fields = content.split(",");
-            for (String field : fields) {
-                field = field.trim();
-                String[] parts = field.split(":", 2);
-                if (parts.length == 2) {
-                    String key = parts[0].trim().replace("\"", "").replace("\'", "");
-                    String value = parts[1].trim();
-
-                    // Убираем кавычки если есть
-                    if (value.startsWith("\"") && value.endsWith("\"")) {
-                        value = value.substring(1, value.length() - 1);
-                    } else if (value.startsWith("\'") && value.endsWith("\'")) {
-                        value = value.substring(1, value.length() - 1);
-                    }
-
-                    System.out.println("Поле: " + key + " = " + value);
-
-                    switch (key) {
-                        case "id":
-                        case "prisonerId":
-                        case "prisoner_id":
-                            try {
-                                prisoner.id = Integer.parseInt(value);
-                            } catch (NumberFormatException e) {
-                                prisoner.id = 0;
-                            }
-                            break;
-                        case "prisonerNumber":
-                        case "number":
-                        case "prisoner_number":
-                            prisoner.number = value;
-                            break;
-                        case "fullName":
-                        case "name":
-                        case "full_name":
-                            prisoner.name = value;
-                            break;
-                        case "birthDate":
-                        case "birth_date":
-                            prisoner.birthDate = value.equals("null") ? "" : value;
-                            break;
-                    }
-                }
-            }
-
-        } catch (Exception e) {
-            System.err.println("Ошибка парсинга объекта: " + e.getMessage());
-        }
-
-        return prisoner;
-    }
-
     private void loadLimitsIntoTextArea(JTextArea limitsArea) {
         SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
             private String limitsText = "";
@@ -529,11 +447,7 @@ public class PrisonerPanel extends JFrame {
             @Override
             protected Void doInBackground() throws Exception {
                 try {
-                    // Получаем лимиты через сервис
                     limitsText = prisonerService.getRemainingVisits(prisonerId);
-
-                    // Или через ApiClient если нужно:
-                    // limitsText = ApiClient.getVisitLimits(prisonerId);
 
                     if (limitsText == null || limitsText.isEmpty()) {
                         limitsText = "Лимиты не найдены\nПроверьте соединение с сервером";
@@ -644,7 +558,6 @@ public class PrisonerPanel extends JFrame {
                     int rowCount = visitsTableModel.getRowCount();
                     int actualRequests = 0;
 
-                    // Считаем только реальные заявки (не сообщения об ошибках)
                     for (int i = 0; i < rowCount; i++) {
                         Object value = visitsTableModel.getValueAt(i, 0);
                         if (value instanceof Integer ||
@@ -710,18 +623,15 @@ public class PrisonerPanel extends JFrame {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
 
-        // Заголовок
         gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 3;
         JLabel titleLabel = new JLabel("ПОДАТЬ ЗАЯВКУ НА СВИДАНИЕ");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 14));
         titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
         panel.add(titleLabel, gbc);
 
-        // Разделитель
         gbc.gridy = 1;
         panel.add(new JSeparator(), gbc);
 
-        // Выбор контакта
         gbc.gridy = 2; gbc.gridwidth = 1;
         panel.add(new JLabel("Выберите контакт:"), gbc);
 
@@ -730,7 +640,6 @@ public class PrisonerPanel extends JFrame {
         contactCombo.setRenderer(new ContactListRenderer());
         panel.add(contactCombo, gbc);
 
-        // Тип свидания
         gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 1;
         panel.add(new JLabel("Тип свидания:"), gbc);
 
@@ -740,19 +649,14 @@ public class PrisonerPanel extends JFrame {
                 "длительное"
         });
         panel.add(typeCombo, gbc);
-
-        // Дата свидания
         gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 1;
         panel.add(new JLabel("Дата свидания:"), gbc);
 
         gbc.gridx = 1; gbc.gridwidth = 2;
         JTextField dateField = new JTextField();
-
-        // Устанавливаем дату через 7 дней от сегодня
         LocalDate nextWeek = LocalDate.now().plusDays(7);
         dateField.setText(nextWeek.toString());
 
-        // Добавляем кнопку выбора даты
         JPanel datePanel = new JPanel(new BorderLayout(5, 0));
         datePanel.add(dateField, BorderLayout.CENTER);
 
@@ -772,7 +676,6 @@ public class PrisonerPanel extends JFrame {
         limitsInfoArea.setText("Загрузка информации о лимитах...");
         panel.add(new JScrollPane(limitsInfoArea), gbc);
 
-        // Кнопки
         gbc.gridx = 0; gbc.gridy = 6; gbc.gridwidth = 1;
         JButton checkButton = new JButton("Проверить возможность");
         panel.add(checkButton, gbc);
@@ -791,8 +694,6 @@ public class PrisonerPanel extends JFrame {
         JLabel statusLabel = new JLabel(" ");
         statusLabel.setForeground(Color.BLUE);
         panel.add(statusLabel, gbc);
-
-        // ============ ОБРАБОТЧИКИ СОБЫТИЙ ============
 
         // Загрузка контактов при создании
         SwingUtilities.invokeLater(() -> loadContactsIntoCombo(contactCombo, statusLabel));
@@ -877,7 +778,6 @@ public class PrisonerPanel extends JFrame {
     }
 
     private void showDatePicker(JTextField dateField) {
-        // Простой диалог выбора даты без внешних библиотек
         JDialog dialog = new JDialog(this, "Выберите дату", true);
         dialog.setSize(300, 200);
         dialog.setLocationRelativeTo(this);
@@ -952,7 +852,6 @@ public class PrisonerPanel extends JFrame {
         dialog.setVisible(true);
     }
 
-    // Класс для отображения контактов в ComboBox
     private class ContactItem {
         int id;
         String name;
@@ -973,7 +872,6 @@ public class PrisonerPanel extends JFrame {
         }
     }
 
-    // Кастомный рендерер для ComboBox
     private class ContactListRenderer extends DefaultListCellRenderer {
         @Override
         public Component getListCellRendererComponent(JList<?> list, Object value,
@@ -1010,21 +908,16 @@ public class PrisonerPanel extends JFrame {
                 try {
                     System.out.println("=== ЗАГРУЗКА КОНТАКТОВ ДЛЯ ФОРМЫ ===");
                     System.out.println("prisonerId: " + prisonerId);
-
-                    // ВАЖНО: Используем тот же сервис, что и "Мои контакты"!
                     List<Contact> serviceContacts = prisonerService.getPrisonerContacts(prisonerId);
 
                     System.out.println("Получено контактов из сервиса: " + serviceContacts.size());
 
-                    // Конвертируем List<Contact> в List<ContactItem>
                     for (Contact contact : serviceContacts) {
-                        // ДЕБАГ вывод каждого контакта
                         System.out.println("Контакт: ID=" + contact.getContactId() +
                                 ", Имя='" + contact.getFullName() + "'" +
                                 ", Родство='" + contact.getRelation() + "'" +
                                 ", Одобрен=" + contact.isApproved());
 
-                        // Создаем ContactItem с правильными данными
                         ContactItem item = new ContactItem(
                                 contact.getContactId(),      // ← используем getContactId()
                                 contact.getFullName(),       // ← используем getFullName()
@@ -1066,7 +959,7 @@ public class PrisonerPanel extends JFrame {
                         System.out.println("Добавлен в ComboBox: " + contact.toString());
                     }
                     statusLabel.setText("Загружено контактов: " + contacts.size());
-                    statusLabel.setForeground(new Color(0, 100, 0)); // темно-зеленый
+                    statusLabel.setForeground(new Color(10, 100, 0)); // темно-зеленый
                 }
             }
         };
@@ -1102,22 +995,6 @@ public class PrisonerPanel extends JFrame {
         worker.execute();
     }
 
-    private int extractNumberFromJSON(String json, String key) {
-        try {
-            String pattern = "\"" + key + "\":\\s*(\\d+)";
-            java.util.regex.Pattern p = java.util.regex.Pattern.compile(pattern);
-            java.util.regex.Matcher m = p.matcher(json);
-
-            if (m.find()) {
-                return Integer.parseInt(m.group(1));
-            }
-        } catch (Exception e) {
-            // Игнорируем
-        }
-        return -1;
-    }
-
-    // Метод extractTableCells должен уже быть (из предыдущего кода с заявками)
     private List<String> extractTableCells(String row) {
         List<String> cells = new ArrayList<>();
         try {
@@ -1228,7 +1105,7 @@ public class PrisonerPanel extends JFrame {
     private void loadVisitRequests() {
         visitsTableModel.setRowCount(0);
 
-        // ТОЛЬКО сообщение о загрузке
+        // Ссообщение о загрузке
         visitsTableModel.addRow(new Object[]{
                 "Загрузка...", "Идёт получение данных с сервера", "", "", "", ""
         });
@@ -1262,7 +1139,6 @@ public class PrisonerPanel extends JFrame {
                         }
 
                         for (VisitRequestItem request : requests) {
-                            // ПОЛУЧАЕМ ИМЯ КОНТАКТА вместо ID
                             String contactName = getContactNameById(request.contactId);
 
                             visitsTableModel.addRow(new Object[]{
@@ -1282,7 +1158,6 @@ public class PrisonerPanel extends JFrame {
                     System.err.println("ОШИБКА загрузки заявок: " + e.getMessage());
                     e.printStackTrace();
 
-                    // ВСЕГО ЛИШЬ сообщение об ошибке, НИКАКИХ тестовых данных
                     SwingUtilities.invokeLater(() -> {
                         visitsTableModel.setRowCount(0);
                         visitsTableModel.addRow(new Object[]{
@@ -1307,7 +1182,6 @@ public class PrisonerPanel extends JFrame {
         }
         return String.valueOf(contactId);
     }
-    private Map<Integer, String> cachedContacts;
 
     private List<VisitRequestItem> parseRealRequestsFromHTML(String html) {
         List<VisitRequestItem> requests = new ArrayList<>();
@@ -1349,7 +1223,7 @@ public class PrisonerPanel extends JFrame {
                             // ID заявки
                             item.id = extractNumber(cells.get(0));
 
-                            // ID контакта (третья ячейка или извлекаем)
+                            // ID контакта
                             item.contactId = extractNumber(cells.get(1));
 
                             // Даты
@@ -1435,26 +1309,11 @@ public class PrisonerPanel extends JFrame {
         String visitType;
         String status;
 
-        // Явно добавляем конструктор по умолчанию
         public VisitRequestItem() {
             // Может быть пустым
         }
-
-        // Также можно добавить конструктор с параметрами для удобства
-        public VisitRequestItem(int id, int prisonerId, int contactId,
-                                LocalDate requestDate, LocalDate visitDate,
-                                String visitType, String status) {
-            this.id = id;
-            this.prisonerId = prisonerId;
-            this.contactId = contactId;
-            this.requestDate = requestDate;
-            this.visitDate = visitDate;
-            this.visitType = visitType;
-            this.status = status;
-        }
     }
 
-    // Получение статуса с цветом для таблицы
     private String getStatusWithColor(String status) {
         String color;
 
